@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12201a">
+  <title>Walk Cue</title>
+  <meta name="description" content="A short outdoor walk, decided from the weather and the hour.">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,560;1,9..144,560&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="stage">
+    <article class="card" id="card">
+      <header class="card-top">
+        <p class="mark">Walk Cue</p>
+        <button type="button" class="text-btn" id="reset" hidden>Different place</button>
+      </header>
+
+      <div id="ask">
+        <h1>Go outside<br>for a bit.</h1>
+        <p class="lede">A city or ZIP. One walk. Then leave.</p>
+        <form id="form" autocomplete="off">
+          <label class="area">
+            <span class="sr-only">City or ZIP</span>
+            <input id="area" name="area" type="text" inputmode="text" maxlength="80" placeholder="Anytown" aria-label="City or ZIP" required spellcheck="false">
+          </label>
+          <button type="submit" id="go">Go walk</button>
+          <p class="status" id="status" role="status"></p>
+        </form>
+      </div>
+
+      <div id="result" hidden tabindex="-1">
+        <p class="duration"><span id="minutes">20</span> <span class="unit">min</span></p>
+        <h1 id="vibe">easy loop</h1>
+        <p class="why" id="why"></p>
+        <p class="weather" id="weather"></p>
+        <p class="where" id="where"></p>
+        <p class="spots-label" id="spots-label" hidden>Nearby</p>
+        <ul class="spots" id="spots"></ul>
+        <p class="note" id="note" hidden></p>
+        <p class="source" id="source"></p>
+      </div>
+    </article>
+  </main>
+  <noscript>
+    <p class="noscript">Walk Cue needs JavaScript to fetch the walk.</p>
+  </noscript>
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -64,7 +64,7 @@ For any place other than the Anytown placeholder:
 2. Overpass looks for named parks, gardens, and nature reserves within a few kilometers. The request sends a `Walk Cue` user agent. If Overpass fails, Nominatim gets one bounded park search. If that fails too, you still get a walk.
 3. The cue comes from the local model, or from the offline writer.
 
-Anytown is not a map lookup. It uses the computer's clock, a fixed mild forecast, and three sample spots so the card can be tried with nothing else configured.
+Anytown is not a map lookup. It uses your clock, a fixed mild forecast, and three sample spots so the card can be tried with nothing else configured.
 
 ## Tests
 
