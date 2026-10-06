@@ -1,5 +1,7 @@
 # Walk Cue
 
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink)](https://github.com/sponsors/joshuaswarren)
+
 One card. A short walk. Then you leave.
 
 Type a city or ZIP code. Walk Cue reads the weather and the hour, then gives you a single cue: how long, what kind of walk, and why this moment is the one. A few nearby parks show up when a map search answers. The page is supposed to be the short part of going outside.
@@ -72,6 +74,14 @@ Anytown is not a map lookup. It uses your clock, a fixed mild forecast, and thre
 python3 -m pip install -r requirements-dev.txt
 pytest
 ```
+
+## Support
+
+Every bit of support helps keep walk-cue alive and free. If you are able, [sponsor on GitHub](https://github.com/sponsors/joshuaswarren) or send a Lightning donation to `joshuaswarren@strike.me` to directly fund continued development and new integrations.
+
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?style=for-the-badge)](https://github.com/sponsors/joshuaswarren)
+
+If financial support is not an option, you can still make a big difference: [star the repo](https://github.com/joshuaswarren/walk-cue), share it, or recommend it to a colleague. Word of mouth is how most people find walk-cue.
 
 ## License
 
