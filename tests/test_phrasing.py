@@ -66,7 +66,8 @@ def test_cold_night_stays_short_and_lit():
     )
     assert cue.duration_minutes == 15
     assert "lit" in cue.why_now
-    assert "3°C" in cue.why_now
+    assert "37°F" in cue.why_now
+    assert "°C" not in cue.why_now
 
 
 def test_hot_clear_afternoon_stays_short():
@@ -90,11 +91,17 @@ def test_parser_accepts_fenced_json_and_rejects_prose():
 
 
 def test_units_and_distance():
-    assert format_temp(20, True) == "68°F"
-    assert format_temp(17.5, False) == "18°C"
-    assert format_distance(800, True) == "0.5 mi"
-    assert format_distance(420, False) == "420 m"
-    assert format_distance(1500, False) == "1.5 km"
+    assert format_temp(20) == "68°F"
+    assert format_temp(17.5) == "64°F"
+    assert format_temp(3) == "37°F"
+    assert format_distance(800) == "0.5 mi"
+    assert format_distance(420) == "0.3 mi"
+    assert format_distance(1500) == "0.9 mi"
+    assert format_distance(100) == "330 ft"
+    assert format_distance(40) == "nearby"
+    assert "°C" not in (format_temp(17.5) or "")
+    assert "km" not in format_distance(1500)
+    assert not format_distance(420).endswith(" m")
 
 
 def test_chat_url_accepts_root_or_v1():
@@ -116,5 +123,7 @@ def test_placeholder_prompt_has_no_coordinates():
     assert "Anytown" in prompt
     assert "latitude" not in prompt
     assert "0.0" not in prompt
+    assert "64°F" in prompt
+    assert "°C" not in prompt
     assert scene.place.demo is True
     assert [spot.name for spot in scene.spots] == ["North Meadow", "Canal Path", "Little Hill"]

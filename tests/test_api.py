@@ -111,6 +111,9 @@ def test_anytown_skips_the_network(settings: Settings):
             "Little Hill",
         ]
         assert "not a map search" in body["spots_note"]
+        assert body["weather"]["summary"].startswith("64°F")
+        assert "°C" not in body["weather"]["summary"]
+        assert [spot["distance"] for spot in body["spots"]] == ["0.3 mi", "0.6 mi", "0.9 mi"]
         assert "latitude" not in response.text
 
         morning = client.post("/api/cue", json={"area": "Anytown", "local_time": "07:30"})
@@ -244,6 +247,11 @@ def test_live_model_writes_the_cue_and_falls_back(settings: Settings):
         body = live_cue.json()
         assert body["cue"]["source"] == "model"
         assert body["cue"]["model"] == "gemma3"
+        assert body["weather"]["summary"].startswith("54°F")
+        assert "°C" not in body["weather"]["summary"]
+        assert "km" not in live_cue.text
+        for spot in body["spots"]:
+            assert spot["distance"].endswith(("mi", "ft")) or spot["distance"] == "nearby"
         assert body["cue"]["duration_minutes"] == 18
         assert body["cue"]["vibe"] == "quiet river loop"
         assert any(spot["name"] == "Hill Park" for spot in body["spots"])

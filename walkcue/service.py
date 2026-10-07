@@ -18,7 +18,6 @@ from walkcue.phrasing import (
     local_clock,
     normalize_area,
     public_spot,
-    uses_imperial,
     weather_summary,
 )
 from walkcue.upstream import Upstream
@@ -117,7 +116,6 @@ class WalkService:
 
 
 def _public(scene: Scene, cue: Cue) -> dict[str, object]:
-    imperial = uses_imperial(scene.place.country_code)
     condition = condition_label(scene.weather.weather_code) if scene.weather.available else None
     return {
         "area": {
@@ -127,7 +125,7 @@ def _public(scene: Scene, cue: Cue) -> dict[str, object]:
         },
         "weather": {
             "available": scene.weather.available,
-            "summary": weather_summary(scene.weather, imperial),
+            "summary": weather_summary(scene.weather),
             "condition": condition,
             "local_time": scene.weather.local_time,
         },
@@ -139,6 +137,6 @@ def _public(scene: Scene, cue: Cue) -> dict[str, object]:
             "notice": cue.notice,
             "model": cue.model,
         },
-        "spots": [public_spot(spot, imperial) for spot in scene.spots],
+        "spots": [public_spot(spot) for spot in scene.spots],
         "spots_note": scene.spots_note,
     }

@@ -13,7 +13,6 @@ from walkcue.phrasing import (
     daypart,
     offline_cue,
     parse_model_cue,
-    uses_imperial,
     weather_summary,
 )
 
@@ -27,6 +26,7 @@ Rules:
 - why_now is one sentence, under 220 characters, tied to the weather and the time of day.
 - Mention a nearby spot only if one is listed and it genuinely fits.
 - Do not invent addresses or places you were not given.
+- Use American units only: temperatures in °F, distances in miles or feet. Never °C, kilometers, or meters.
 - No emoji, hashtags, or pep talk.
 """
 
@@ -34,7 +34,6 @@ FALLBACK_NOTICE = "The model didn't answer, so this is the offline cue."
 
 
 def prompt_for(scene: Scene) -> str:
-    imperial = uses_imperial(scene.place.country_code)
     if scene.spots:
         spots = "\n".join(f"- {spot.name}" for spot in scene.spots)
     else:
@@ -42,7 +41,7 @@ def prompt_for(scene: Scene) -> str:
     return (
         f"Area: {scene.place.label}\n"
         f"Local time: {scene.weather.local_time} ({daypart(scene.weather.hour)})\n"
-        f"Weather: {weather_summary(scene.weather, imperial)}\n"
+        f"Weather: {weather_summary(scene.weather)}\n"
         f"Nearby outdoor spots:\n{spots}\n"
     )
 
