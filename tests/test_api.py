@@ -1,6 +1,7 @@
 import json
 
 import httpx
+import pytest
 from fastapi.testclient import TestClient
 
 from walkcue.config import Settings
@@ -111,6 +112,9 @@ def test_anytown_skips_the_network(settings: Settings):
             "Little Hill",
         ]
         assert "not a map search" in body["spots_note"]
+        assert body["weather"]["summary"].startswith("64°F")
+        assert "°C" not in body["weather"]["summary"]
+        assert [spot["distance"] for spot in body["spots"]] == ["0.3 mi", "0.6 mi", "0.9 mi"]
         assert "latitude" not in response.text
 
         morning = client.post("/api/cue", json={"area": "Anytown", "local_time": "07:30"})
@@ -216,6 +220,7 @@ def test_live_model_writes_the_cue_and_falls_back(settings: Settings):
             assert request.headers["authorization"] == "Bearer test-token"
             sent = json.loads(request.content.decode())
             assert sent["model"] == "gemma3"
+            assert sent["chat_template_kwargs"] == {"enable_thinking": False}
             user = sent["messages"][1]["content"]
             assert "Lisbon" in user
             assert "latitude" not in user
@@ -244,6 +249,11 @@ def test_live_model_writes_the_cue_and_falls_back(settings: Settings):
         body = live_cue.json()
         assert body["cue"]["source"] == "model"
         assert body["cue"]["model"] == "gemma3"
+        assert body["weather"]["summary"].startswith("54°F")
+        assert "°C" not in body["weather"]["summary"]
+        assert "km" not in live_cue.text
+        for spot in body["spots"]:
+            assert spot["distance"].endswith(("mi", "ft")) or spot["distance"] == "nearby"
         assert body["cue"]["duration_minutes"] == 18
         assert body["cue"]["vibe"] == "quiet river loop"
         assert any(spot["name"] == "Hill Park" for spot in body["spots"])
@@ -255,6 +265,72 @@ def test_live_model_writes_the_cue_and_falls_back(settings: Settings):
         assert offline["source"] == "mock"
         assert offline["notice"]
         assert offline["duration_minutes"] == 12
+
+
+def test_qwen_thinking_reply_still_becomes_a_cue(settings: Settings):
+    live = Settings(
+        llm_mode="live",
+        llm_base_url="http://llm.test/v1",
+        llm_model="qwen3.8-27b-64k",
+        llm_api_key="",
+        llm_timeout=5,
+        host="127.0.0.1",
+        port=8000,
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "geocoding-api.open-meteo.com":
+            return httpx.Response(200, json=LISBON)
+        if request.url.host == "api.open-meteo.com":
+            return httpx.Response(200, json=_forecast(1, 18, "2026-10-07T14:00"))
+        if request.url.host == "overpass-api.de":
+            return httpx.Response(200, json={"elements": []})
+        if request.url.host == "nominatim.openstreetmap.org":
+            return httpx.Response(200, json=[])
+        if request.url.host == "llm.test":
+            sent = json.loads(request.content.decode())
+            assert sent["model"] == "qwen3.8-27b-64k"
+            assert sent["chat_template_kwargs"] == {"enable_thinking": False}
+            return httpx.Response(
+                200,
+                json={
+                    "choices": [
+                        {
+                            "message": {
+                                "content": None,
+                                "reasoning_content": (
+                                    '{"duration_minutes": 22, "vibe": "easy shaded loop", '
+                                    '"why_now": "It is 64°F and bright enough for a short loop."}'
+                                ),
+                            }
+                        }
+                    ]
+                },
+            )
+        return httpx.Response(404)
+
+    with _client(live, handler) as client:
+        response = client.get("/api/cue", params={"area": "Lisbon"})
+        assert response.status_code == 200
+        body = response.json()
+        assert body["cue"]["source"] == "model"
+        assert body["cue"]["model"] == "qwen3.8-27b-64k"
+        assert body["cue"]["duration_minutes"] == 22
+        assert body["cue"]["vibe"] == "easy shaded loop"
+        assert "64°F" in body["cue"]["why_now"]
+        assert body["weather"]["summary"].startswith("64°F")
+        assert "°C" not in body["weather"]["summary"]
+
+
+def test_live_env_selects_the_server_and_model(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("WALK_CUE_LLM_MODE", "live")
+    monkeypatch.setenv("WALK_CUE_LLM_BASE_URL", "http://127.0.0.1:8080/v1")
+    monkeypatch.setenv("WALK_CUE_LLM_MODEL", "qwen3.8-27b-64k")
+    loaded = Settings.from_env()
+    assert loaded.live is True
+    assert loaded.llm_mode == "live"
+    assert loaded.llm_base_url == "http://127.0.0.1:8080/v1"
+    assert loaded.llm_model == "qwen3.8-27b-64k"
 
 
 def test_missing_place_and_bad_input(settings: Settings):

@@ -8,8 +8,6 @@ from datetime import datetime
 
 from walkcue.models import Cue, Scene, Spot, Weather
 
-IMPERIAL_COUNTRIES = {"US", "LR", "MM"}
-
 # Exact strings reserved so the placeholder never hits a map service.
 PLACEHOLDERS = {"anytown", "anytown, usa"}
 
@@ -89,35 +87,28 @@ def client_now(value: str | None) -> datetime | None:
     )
 
 
-def uses_imperial(country_code: str | None) -> bool:
-    return (country_code or "").upper() in IMPERIAL_COUNTRIES
-
-
 def _rounded(value: float) -> int:
     if value >= 0:
         return int(math.floor(value + 0.5))
     return int(math.ceil(value - 0.5))
 
 
-def format_temp(temp_c: float | None, imperial: bool) -> str | None:
+def format_temp(temp_c: float | None) -> str | None:
+    """Display temperature in Fahrenheit. Upstream values stay Celsius."""
     if temp_c is None or not math.isfinite(temp_c):
         return None
-    if imperial:
-        return f"{_rounded(temp_c * 9 / 5 + 32)}°F"
-    return f"{_rounded(temp_c)}°C"
+    return f"{_rounded(temp_c * 9 / 5 + 32)}°F"
 
 
-def format_distance(meters: int, imperial: bool) -> str:
+def format_distance(meters: int) -> str:
+    """Display distance in miles, or feet under a tenth of a mile."""
     if meters < 80:
         return "nearby"
-    if imperial:
-        miles = meters / 1609.344
-        if miles < 0.15:
-            return "nearby"
-        return f"{miles:.1f} mi"
-    if meters < 1000:
-        return f"{int(round(meters / 10.0) * 10)} m"
-    return f"{meters / 1000:.1f} km"
+    miles = meters / 1609.344
+    if miles < 0.1:
+        feet = int(round(meters * 3.280839895 / 10.0) * 10)
+        return f"{feet} ft"
+    return f"{miles:.1f} mi"
 
 
 def condition_label(code: int | None) -> str:
@@ -154,11 +145,11 @@ def breeze_label(wind_kmh: float | None) -> str | None:
     return "windy"
 
 
-def weather_summary(weather: Weather, imperial: bool) -> str:
+def weather_summary(weather: Weather) -> str:
     if not weather.available:
         return "Weather unavailable · using the time of day"
     parts = [
-        format_temp(weather.temp_c, imperial),
+        format_temp(weather.temp_c),
         condition_label(weather.weather_code),
         breeze_label(weather.wind_kmh),
     ]
@@ -232,7 +223,7 @@ def _why(kind: str, scene: Scene, minutes: int) -> str:
     spot = scene.spots[0].name if scene.spots else None
     span = _minutes_phrase(minutes)
     part = daypart(scene.weather.hour)
-    temp = format_temp(scene.weather.temp_c, uses_imperial(scene.place.country_code))
+    temp = format_temp(scene.weather.temp_c)
     code = scene.weather.weather_code or 0
     variant = _seed(scene.weather.hour, code, minutes) % 2
 
@@ -357,10 +348,10 @@ def _clean_why(value: object) -> str | None:
     return text
 
 
-def public_spot(spot: Spot, imperial: bool) -> dict[str, object]:
+def public_spot(spot: Spot) -> dict[str, object]:
     return {
         "name": spot.name,
-        "distance": format_distance(spot.distance_m, imperial),
+        "distance": format_distance(spot.distance_m),
         "sample": spot.sample,
     }
 

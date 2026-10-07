@@ -4,7 +4,9 @@
 
 One card. A short walk. Then you leave.
 
-Type a city or ZIP code. Walk Cue reads the weather and the hour, then gives you a single cue: how long, what kind of walk, and why this moment is the one. A few nearby parks show up when a map search answers. The page is supposed to be the short part of going outside.
+![Anytown walk cue card](docs/screenshots/anytown.png)
+
+Type a city or ZIP code. Walk Cue reads the weather and the hour, then gives you a single cue: how long, what kind of walk, and why this moment is the one. A few nearby parks show up when a map search answers. Temperatures are in °F. Distances are in miles, or feet when a spot is under a tenth of a mile. The page is supposed to be the short part of going outside.
 
 ## Run
 
@@ -52,7 +54,11 @@ Restart `python -m walkcue`. A base URL by itself does nothing while mode is `mo
 
 If the server is down, times out, or returns something that isn't a usable cue, the card falls back to the offline text and says so.
 
-LM Studio and similar local servers use the same settings. A common LM Studio base URL is `http://127.0.0.1:1234/v1`. Set `WALK_CUE_LLM_MODEL` to the name that server expects. Leave `WALK_CUE_LLM_API_KEY` empty unless it requires a bearer token.
+The screenshots in this repo are offline cards. A card written by the local model is not included yet. After a model on this machine answers a real request, save that shot as `docs/screenshots/live-model.png`.
+
+LM Studio, llama-server, and similar local servers use the same settings. A common LM Studio base URL is `http://127.0.0.1:1234/v1`. Set `WALK_CUE_LLM_MODEL` to the name that server expects, such as `qwen3.8-27b-64k` on llama-server. Leave `WALK_CUE_LLM_API_KEY` empty unless it requires a bearer token.
+
+The chat request turns thinking off. Qwen3 templates otherwise leave `content` empty and put the reply in `reasoning_content`.
 
 `WALK_CUE_HOST=0.0.0.0` listens beyond localhost so a phone on the same network can open the card.
 
@@ -63,7 +69,7 @@ The area is whatever you type at runtime. It is not saved on the server. The bro
 For any place other than the Anytown placeholder:
 
 1. Open-Meteo geocoding resolves the city or postal code. The forecast API then supplies current conditions. Neither call needs a key.
-2. Overpass looks for named parks, gardens, and nature reserves within a few kilometers. The request sends a `Walk Cue` user agent. If Overpass fails, Nominatim gets one bounded park search. If that fails too, you still get a walk.
+2. Overpass looks for named parks, gardens, and nature reserves within about two miles. The request sends a `Walk Cue` user agent. If Overpass fails, Nominatim gets one bounded park search. If that fails too, you still get a walk.
 3. The cue comes from the local model, or from the offline writer.
 
 Anytown is not a map lookup. It uses your clock, a fixed mild forecast, and three sample spots so the card can be tried with nothing else configured.

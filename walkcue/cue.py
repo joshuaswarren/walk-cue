@@ -13,7 +13,6 @@ from walkcue.phrasing import (
     daypart,
     offline_cue,
     parse_model_cue,
-    uses_imperial,
     weather_summary,
 )
 
@@ -27,6 +26,7 @@ Rules:
 - why_now is one sentence, under 220 characters, tied to the weather and the time of day.
 - Mention a nearby spot only if one is listed and it genuinely fits.
 - Do not invent addresses or places you were not given.
+- Use American units only: temperatures in °F, distances in miles or feet. Never °C, kilometers, or meters.
 - No emoji, hashtags, or pep talk.
 """
 
@@ -34,7 +34,6 @@ FALLBACK_NOTICE = "The model didn't answer, so this is the offline cue."
 
 
 def prompt_for(scene: Scene) -> str:
-    imperial = uses_imperial(scene.place.country_code)
     if scene.spots:
         spots = "\n".join(f"- {spot.name}" for spot in scene.spots)
     else:
@@ -42,9 +41,21 @@ def prompt_for(scene: Scene) -> str:
     return (
         f"Area: {scene.place.label}\n"
         f"Local time: {scene.weather.local_time} ({daypart(scene.weather.hour)})\n"
-        f"Weather: {weather_summary(scene.weather, imperial)}\n"
+        f"Weather: {weather_summary(scene.weather)}\n"
         f"Nearby outdoor spots:\n{spots}\n"
     )
+
+
+def _content_string(content: object) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, dict) and isinstance(item.get("text"), str):
+                parts.append(item["text"])
+        return "\n".join(parts)
+    return ""
 
 
 def _message_text(payload: dict[str, Any]) -> str:
@@ -55,16 +66,15 @@ def _message_text(payload: dict[str, Any]) -> str:
     message = first.get("message") if isinstance(first, dict) else {}
     if not isinstance(message, dict):
         return ""
-    content = message.get("content")
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        parts: list[str] = []
-        for item in content:
-            if isinstance(item, dict) and isinstance(item.get("text"), str):
-                parts.append(item["text"])
-        return "\n".join(parts)
-    return ""
+    text = _content_string(message.get("content"))
+    if text.strip():
+        return text
+    # Qwen3 thinking templates leave content empty and put the reply in
+    # reasoning_content unless the request disables thinking.
+    reasoning = message.get("reasoning_content")
+    if isinstance(reasoning, str) and reasoning.strip():
+        return reasoning
+    return text
 
 
 class CueWriter:
@@ -98,6 +108,9 @@ class CueWriter:
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt},
                 ],
+                # Qwen3 chat templates think by default and then return empty
+                # content. llama-server honors this and writes the cue instead.
+                "chat_template_kwargs": {"enable_thinking": False},
             },
             headers=headers,
             timeout=httpx.Timeout(self._settings.llm_timeout, connect=3.0),
