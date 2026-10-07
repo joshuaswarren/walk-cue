@@ -4,6 +4,8 @@
 
 One card. A short walk. Then you leave.
 
+![Anytown walk cue card](docs/screenshots/anytown.png)
+
 Type a city or ZIP code. Walk Cue reads the weather and the hour, then gives you a single cue: how long, what kind of walk, and why this moment is the one. A few nearby parks show up when a map search answers. The page is supposed to be the short part of going outside.
 
 ## Run
