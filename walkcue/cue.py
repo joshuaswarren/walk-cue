@@ -46,15 +46,7 @@ def prompt_for(scene: Scene) -> str:
     )
 
 
-def _message_text(payload: dict[str, Any]) -> str:
-    choices = payload.get("choices") or []
-    if not choices or not isinstance(choices, list):
-        return ""
-    first = choices[0] if isinstance(choices[0], dict) else {}
-    message = first.get("message") if isinstance(first, dict) else {}
-    if not isinstance(message, dict):
-        return ""
-    content = message.get("content")
+def _content_string(content: object) -> str:
     if isinstance(content, str):
         return content
     if isinstance(content, list):
@@ -64,6 +56,25 @@ def _message_text(payload: dict[str, Any]) -> str:
                 parts.append(item["text"])
         return "\n".join(parts)
     return ""
+
+
+def _message_text(payload: dict[str, Any]) -> str:
+    choices = payload.get("choices") or []
+    if not choices or not isinstance(choices, list):
+        return ""
+    first = choices[0] if isinstance(choices[0], dict) else {}
+    message = first.get("message") if isinstance(first, dict) else {}
+    if not isinstance(message, dict):
+        return ""
+    text = _content_string(message.get("content"))
+    if text.strip():
+        return text
+    # Qwen3 thinking templates leave content empty and put the reply in
+    # reasoning_content unless the request disables thinking.
+    reasoning = message.get("reasoning_content")
+    if isinstance(reasoning, str) and reasoning.strip():
+        return reasoning
+    return text
 
 
 class CueWriter:
@@ -97,6 +108,9 @@ class CueWriter:
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt},
                 ],
+                # Qwen3 chat templates think by default and then return empty
+                # content. llama-server honors this and writes the cue instead.
+                "chat_template_kwargs": {"enable_thinking": False},
             },
             headers=headers,
             timeout=httpx.Timeout(self._settings.llm_timeout, connect=3.0),

@@ -56,7 +56,9 @@ If the server is down, times out, or returns something that isn't a usable cue, 
 
 The screenshots in this repo are offline cards. A card written by the local model is not included yet. After a model on this machine answers a real request, save that shot as `docs/screenshots/live-model.png`.
 
-LM Studio and similar local servers use the same settings. A common LM Studio base URL is `http://127.0.0.1:1234/v1`. Set `WALK_CUE_LLM_MODEL` to the name that server expects. Leave `WALK_CUE_LLM_API_KEY` empty unless it requires a bearer token.
+LM Studio, llama-server, and similar local servers use the same settings. A common LM Studio base URL is `http://127.0.0.1:1234/v1`. Set `WALK_CUE_LLM_MODEL` to the name that server expects, such as `qwen3.8-27b-64k` on llama-server. Leave `WALK_CUE_LLM_API_KEY` empty unless it requires a bearer token.
+
+The chat request turns thinking off. Qwen3 templates otherwise leave `content` empty and put the reply in `reasoning_content`.
 
 `WALK_CUE_HOST=0.0.0.0` listens beyond localhost so a phone on the same network can open the card.
 
