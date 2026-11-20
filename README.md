@@ -52,7 +52,7 @@ WALK_CUE_LLM_MODEL=gemma3
 
 Restart `python -m walkcue`. A base URL by itself does nothing while mode is `mock`, so a fresh clone never waits on a model that isn't running.
 
-If the server is down, times out, or returns something that isn't a usable cue, the card falls back to the offline text and says so.
+If the server is down, times out, or returns something that isn't a usable cue, the card falls back to the offline text and says so. The server log gets a warning with the reason each time, so a model that never answers does not go unnoticed.
 
 ![Gemma 3 (4B) through Ollama](docs/screenshots/live-gemma.png)
 
