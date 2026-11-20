@@ -98,20 +98,22 @@ class CueWriter:
         headers = {"Content-Type": "application/json"}
         if self._settings.llm_api_key:
             headers["Authorization"] = f"Bearer {self._settings.llm_api_key}"
+        body: dict[str, Any] = {
+            "model": self._settings.llm_model,
+            "temperature": 0.3,
+            "max_tokens": 300,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+        }
+        if self._settings.llm_chat_template_kwargs:
+            # Qwen3 chat templates think by default and then return empty
+            # content. llama-server honors this and writes the cue instead.
+            body["chat_template_kwargs"] = {"enable_thinking": False}
         response = await self._client.post(
             chat_completions_url(self._settings.llm_base_url),
-            json={
-                "model": self._settings.llm_model,
-                "temperature": 0.3,
-                "max_tokens": 300,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt},
-                ],
-                # Qwen3 chat templates think by default and then return empty
-                # content. llama-server honors this and writes the cue instead.
-                "chat_template_kwargs": {"enable_thinking": False},
-            },
+            json=body,
             headers=headers,
             timeout=httpx.Timeout(self._settings.llm_timeout, connect=3.0),
         )

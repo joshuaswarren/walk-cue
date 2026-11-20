@@ -64,7 +64,7 @@ Qwen 3.8 27B on llama-server.
 
 LM Studio, llama-server, and similar local servers use the same settings. A common LM Studio base URL is `http://127.0.0.1:1234/v1`. Set `WALK_CUE_LLM_MODEL` to the name that server expects, such as `qwen3.8-27b-64k` on llama-server. Leave `WALK_CUE_LLM_API_KEY` empty unless it requires a bearer token.
 
-The chat request turns thinking off. Qwen3 templates otherwise leave `content` empty and put the reply in `reasoning_content`.
+The chat request turns thinking off. Qwen3 templates otherwise leave `content` empty and put the reply in `reasoning_content`. It does that with `chat_template_kwargs`, which llama-server reads. A strict OpenAI-compatible server rejects that field, so set `WALK_CUE_LLM_CHAT_TEMPLATE_KWARGS=0` for one.
 
 `WALK_CUE_HOST=0.0.0.0` listens beyond localhost so a phone on the same network can open the card.
 
