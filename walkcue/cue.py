@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import httpx
@@ -31,6 +32,8 @@ Rules:
 """
 
 FALLBACK_NOTICE = "The model didn't answer, so this is the offline cue."
+
+logger = logging.getLogger(__name__)
 
 
 def prompt_for(scene: Scene) -> str:
@@ -87,31 +90,48 @@ class CueWriter:
             return offline_cue(scene)
         try:
             text = await self._complete(prompt_for(scene))
-        except (httpx.HTTPError, ValueError):
-            return _fallback(scene)
+        except httpx.HTTPStatusError as exc:
+            return self._fallback(scene, f"HTTP {exc.response.status_code}")
+        except httpx.HTTPError as exc:
+            return self._fallback(scene, type(exc).__name__)
+        except ValueError:
+            return self._fallback(scene, "invalid JSON in the reply")
         parsed = parse_model_cue(text, self._settings.llm_model)
         if parsed is None:
-            return _fallback(scene)
+            return self._fallback(scene, "unparsable cue in the reply")
         return parsed
+
+    def _fallback(self, scene: Scene, reason: str) -> Cue:
+        # Each fallback serves the offline cue, so without this line a live
+        # deployment whose model never answers looks healthy.
+        logger.warning(
+            "walk cue: model %r at %s was not used (%s); serving the offline cue",
+            self._settings.llm_model,
+            self._settings.llm_base_url,
+            reason,
+        )
+        return _fallback(scene)
 
     async def _complete(self, user_prompt: str) -> str:
         headers = {"Content-Type": "application/json"}
         if self._settings.llm_api_key:
             headers["Authorization"] = f"Bearer {self._settings.llm_api_key}"
+        body: dict[str, Any] = {
+            "model": self._settings.llm_model,
+            "temperature": 0.3,
+            "max_tokens": 300,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+        }
+        if self._settings.llm_chat_template_kwargs:
+            # Qwen3 chat templates think by default and then return empty
+            # content. llama-server honors this and writes the cue instead.
+            body["chat_template_kwargs"] = {"enable_thinking": False}
         response = await self._client.post(
             chat_completions_url(self._settings.llm_base_url),
-            json={
-                "model": self._settings.llm_model,
-                "temperature": 0.3,
-                "max_tokens": 300,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt},
-                ],
-                # Qwen3 chat templates think by default and then return empty
-                # content. llama-server honors this and writes the cue instead.
-                "chat_template_kwargs": {"enable_thinking": False},
-            },
+            json=body,
             headers=headers,
             timeout=httpx.Timeout(self._settings.llm_timeout, connect=3.0),
         )

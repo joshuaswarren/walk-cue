@@ -56,6 +56,13 @@ def _int(name: str, default: int) -> int:
         raise SystemExit(f"{name} must be an integer.") from exc
 
 
+def _flag(name: str, default: bool) -> bool:
+    raw = os.environ.get(name, "").strip().lower()
+    if not raw:
+        return default
+    return raw not in {"0", "false", "no", "off"}
+
+
 def _float(name: str, default: float) -> float:
     raw = os.environ.get(name, "").strip()
     if not raw:
@@ -76,6 +83,9 @@ class Settings:
     host: str
     port: int
     user_agent: str = USER_AGENT
+    # llama-server reads chat_template_kwargs to turn Qwen3 thinking off; a
+    # strict OpenAI-compatible server rejects the unknown field with a 400.
+    llm_chat_template_kwargs: bool = True
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -90,6 +100,7 @@ class Settings:
             llm_timeout=_float("WALK_CUE_LLM_TIMEOUT", 20.0),
             host=os.environ.get("WALK_CUE_HOST", "127.0.0.1").strip() or "127.0.0.1",
             port=_int("WALK_CUE_PORT", 8000),
+            llm_chat_template_kwargs=_flag("WALK_CUE_LLM_CHAT_TEMPLATE_KWARGS", True),
         )
 
     @property
